@@ -1,0 +1,166 @@
+# ============================================
+# Fraud Detection Platform — Docker Compose
+# ============================================
+# Usage: docker-compose up -d
+
+version: "3.9"
+
+services:
+  # ──────────────────────────────────────────
+  # INFRASTRUCTURE
+  # ──────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: fdp-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fraud_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fraud_pass_2024}
+      POSTGRES_DB: ${POSTGRES_DB:-fraud_detection}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fraud_user}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fdp-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: fdp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - fdp-network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: fdp-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "5672:5672"     # AMQP protocol
+      - "15672:15672"   # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./infra/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - fdp-network
+
+  # ──────────────────────────────────────────
+  # BACKEND SERVICES
+  # ──────────────────────────────────────────
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: fdp-api-gateway
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./services/api-gateway/app:/app/app
+      - ./shared:/app/shared
+    networks:
+      - fdp-network
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/worker/Dockerfile
+    container_name: fdp-worker
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./services/worker/app:/app/app
+      - ./shared:/app/shared
+    networks:
+      - fdp-network
+    restart: unless-stopped
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: services/mcp-server/Dockerfile
+    container_name: fdp-mcp-server
+    env_file:
+      - .env
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/mcp-server/app:/app/app
+      - ./shared:/app/shared
+    networks:
+      - fdp-network
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────
+  # FRONTEND
+  # ──────────────────────────────────────────
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fdp-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - fdp-network
+    restart: unless-stopped
+
+# ──────────────────────────────────────────
+# VOLUMES & NETWORKS
+# ──────────────────────────────────────────
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  fdp-network:
+    driver: bridge

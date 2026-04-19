@@ -1,0 +1,95 @@
+{
+  "rabbit_version": "3.13",
+  "users": [
+    {
+      "name": "guest",
+      "password_hash": "guest",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": "administrator"
+    }
+  ],
+  "vhosts": [
+    { "name": "/" }
+  ],
+  "permissions": [
+    {
+      "user": "guest",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "fdp.transactions",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false
+    },
+    {
+      "name": "fdp.alerts",
+      "vhost": "/",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false
+    },
+    {
+      "name": "fdp.dlx",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false
+    }
+  ],
+  "queues": [
+    {
+      "name": "fdp.transaction.process",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "fdp.dlx",
+        "x-dead-letter-routing-key": "dlq.transaction"
+      }
+    },
+    {
+      "name": "fdp.fraud.alerts",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "fdp.dlq.transaction",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "fdp.transactions",
+      "vhost": "/",
+      "destination": "fdp.transaction.process",
+      "destination_type": "queue",
+      "routing_key": "transaction.created"
+    },
+    {
+      "source": "fdp.alerts",
+      "vhost": "/",
+      "destination": "fdp.fraud.alerts",
+      "destination_type": "queue",
+      "routing_key": ""
+    },
+    {
+      "source": "fdp.dlx",
+      "vhost": "/",
+      "destination": "fdp.dlq.transaction",
+      "destination_type": "queue",
+      "routing_key": "dlq.transaction"
+    }
+  ]
+}
