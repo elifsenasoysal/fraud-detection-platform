@@ -1,9 +1,7 @@
 # ============================================
 # Fraud Detection Platform — Docker Compose
 # ============================================
-# Usage: docker-compose up -d
-
-version: "3.9"
+# Usage: docker compose up -d
 
 services:
   # ──────────────────────────────────────────
@@ -57,7 +55,6 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
-      - ./infra/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s

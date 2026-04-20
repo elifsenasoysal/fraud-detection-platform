@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Radio } from 'lucide-react';
 import { transactionService } from '../services/api';
 import { useWebSocket } from '../hooks/useWebSocket';

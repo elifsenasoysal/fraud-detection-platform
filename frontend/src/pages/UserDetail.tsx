@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { Users, Search } from 'lucide-react';
 import { userService } from '../services/api';
 import RiskIndicator from '../components/common/RiskIndicator';
@@ -32,7 +32,7 @@ export default function UserDetail() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     if (searchId.trim()) loadUserDetail(searchId.trim());
   };

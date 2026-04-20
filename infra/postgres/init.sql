@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     longitude DOUBLE PRECISION,
     status transaction_status DEFAULT 'approved',
     metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ──────────────────────────────────────────
@@ -53,7 +54,8 @@ CREATE TABLE IF NOT EXISTS fraud_alerts (
     details JSONB DEFAULT '{}',
     is_resolved BOOLEAN DEFAULT FALSE,
     resolved_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ──────────────────────────────────────────

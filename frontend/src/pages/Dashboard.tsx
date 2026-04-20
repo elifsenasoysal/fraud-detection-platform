@@ -1,15 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BarChart3,
   ShieldAlert,
   TrendingUp,
-  Users,
-  Activity,
   AlertTriangle,
 } from 'lucide-react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell,
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
 } from 'recharts';
 import { fraudService, transactionService } from '../services/api';
 import type { FraudStats } from '../types/fraud';

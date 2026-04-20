@@ -11,37 +11,37 @@ help: ## Show this help message
 # ---------- Docker ----------
 
 up: ## Start all services
-	docker-compose up -d
+	docker compose up -d
 
 up-build: ## Build and start all services
-	docker-compose up -d --build
+	docker compose up -d --build
 
 down: ## Stop all services
-	docker-compose down
+	docker compose down
 
 down-clean: ## Stop all services and remove volumes
-	docker-compose down -v
+	docker compose down -v
 
 build: ## Build all Docker images
-	docker-compose build
+	docker compose build
 
 logs: ## Show logs for all services
-	docker-compose logs -f
+	docker compose logs -f
 
 logs-api: ## Show API Gateway logs
-	docker-compose logs -f api-gateway
+	docker compose logs -f api-gateway
 
 logs-worker: ## Show Worker logs
-	docker-compose logs -f worker
+	docker compose logs -f worker
 
 logs-mcp: ## Show MCP Server logs
-	docker-compose logs -f mcp-server
+	docker compose logs -f mcp-server
 
 restart: ## Restart all services
-	docker-compose restart
+	docker compose restart
 
 ps: ## Show running services
-	docker-compose ps
+	docker compose ps
 
 # ---------- Development ----------
 

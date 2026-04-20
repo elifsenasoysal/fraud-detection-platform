@@ -122,10 +122,10 @@ cd fraud-detection-platform
 cp .env.example .env
 
 # 3. Tüm sistemi başlatın
-docker-compose up -d --build
+docker compose up -d --build
 
 # 4. Durumu kontrol edin
-docker-compose ps
+docker compose ps
 ```
 
 ### Servis Adresları

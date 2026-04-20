@@ -1,13 +1,4 @@
 {
-  "rabbit_version": "3.13",
-  "users": [
-    {
-      "name": "guest",
-      "password_hash": "guest",
-      "hashing_algorithm": "rabbit_password_hashing_sha256",
-      "tags": "administrator"
-    }
-  ],
   "vhosts": [
     { "name": "/" }
   ],
@@ -26,21 +17,27 @@
       "vhost": "/",
       "type": "direct",
       "durable": true,
-      "auto_delete": false
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
     },
     {
       "name": "fdp.alerts",
       "vhost": "/",
       "type": "fanout",
       "durable": true,
-      "auto_delete": false
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
     },
     {
       "name": "fdp.dlx",
       "vhost": "/",
       "type": "direct",
       "durable": true,
-      "auto_delete": false
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
     }
   ],
   "queues": [
@@ -75,21 +72,24 @@
       "vhost": "/",
       "destination": "fdp.transaction.process",
       "destination_type": "queue",
-      "routing_key": "transaction.created"
+      "routing_key": "transaction.created",
+      "arguments": {}
     },
     {
       "source": "fdp.alerts",
       "vhost": "/",
       "destination": "fdp.fraud.alerts",
       "destination_type": "queue",
-      "routing_key": ""
+      "routing_key": "",
+      "arguments": {}
     },
     {
       "source": "fdp.dlx",
       "vhost": "/",
       "destination": "fdp.dlq.transaction",
       "destination_type": "queue",
-      "routing_key": "dlq.transaction"
+      "routing_key": "dlq.transaction",
+      "arguments": {}
     }
   ]
 }

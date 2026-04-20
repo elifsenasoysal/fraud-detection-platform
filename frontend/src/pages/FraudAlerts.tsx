@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import { fraudService } from '../services/api';
 import RiskIndicator from '../components/common/RiskIndicator';

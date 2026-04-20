@@ -1,6 +1,6 @@
 """
 API Gateway — Core RabbitMQ Module
-Manages RabbitMQ async connection and provides publisher utilities.
+Manages RabbitMQ async connection, declares exchanges/queues, and provides publisher utilities.
 """
 
 import json
@@ -19,12 +19,47 @@ channel: Optional[aio_pika.abc.AbstractChannel] = None
 
 
 async def init_rabbitmq() -> None:
-    """Initialize RabbitMQ connection and channel."""
+    """Initialize RabbitMQ connection, channel, and declare topology."""
     global connection, channel
 
     connection = await aio_pika.connect_robust(settings.rabbitmq_url)
     channel = await connection.channel()
-    logger.info("✅ RabbitMQ connected")
+
+    # Declare exchanges
+    await channel.declare_exchange(
+        "fdp.transactions", aio_pika.ExchangeType.DIRECT, durable=True
+    )
+    await channel.declare_exchange(
+        "fdp.alerts", aio_pika.ExchangeType.FANOUT, durable=True
+    )
+    await channel.declare_exchange(
+        "fdp.dlx", aio_pika.ExchangeType.DIRECT, durable=True
+    )
+
+    # Declare queues
+    dlq = await channel.declare_queue("fdp.dlq.transaction", durable=True)
+
+    process_queue = await channel.declare_queue(
+        "fdp.transaction.process",
+        durable=True,
+        arguments={
+            "x-dead-letter-exchange": "fdp.dlx",
+            "x-dead-letter-routing-key": "dlq.transaction",
+        },
+    )
+
+    alerts_queue = await channel.declare_queue("fdp.fraud.alerts", durable=True)
+
+    # Bind queues to exchanges
+    tx_exchange = await channel.get_exchange("fdp.transactions")
+    alerts_exchange = await channel.get_exchange("fdp.alerts")
+    dlx_exchange = await channel.get_exchange("fdp.dlx")
+
+    await process_queue.bind(tx_exchange, routing_key="transaction.created")
+    await alerts_queue.bind(alerts_exchange, routing_key="")
+    await dlq.bind(dlx_exchange, routing_key="dlq.transaction")
+
+    logger.info("✅ RabbitMQ connected & topology declared")
 
 
 async def close_rabbitmq() -> None:
