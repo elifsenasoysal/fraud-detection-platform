@@ -1,13 +1,16 @@
 """
 API Gateway — Core RabbitMQ Module
 Manages RabbitMQ async connection, declares exchanges/queues, and provides publisher utilities.
+Also runs a background consumer for fraud alerts to push them to WebSocket clients.
 """
 
+import asyncio
 import json
 import logging
 from typing import Optional
 
 import aio_pika
+from aio_pika.abc import AbstractIncomingMessage
 
 from app.config import settings
 
@@ -16,6 +19,11 @@ logger = logging.getLogger(__name__)
 # Module-level connection and channel
 connection: Optional[aio_pika.abc.AbstractRobustConnection] = None
 channel: Optional[aio_pika.abc.AbstractChannel] = None
+
+
+def get_channel() -> Optional[aio_pika.abc.AbstractChannel]:
+    """Get the current RabbitMQ channel."""
+    return channel
 
 
 async def init_rabbitmq() -> None:
@@ -50,6 +58,12 @@ async def init_rabbitmq() -> None:
 
     alerts_queue = await channel.declare_queue("fdp.fraud.alerts", durable=True)
 
+    # API Gateway's own queue to consume alerts for WebSocket push
+    ws_alerts_queue = await channel.declare_queue(
+        "fdp.fraud.alerts.ws",
+        durable=True,
+    )
+
     # Bind queues to exchanges
     tx_exchange = await channel.get_exchange("fdp.transactions")
     alerts_exchange = await channel.get_exchange("fdp.alerts")
@@ -57,6 +71,7 @@ async def init_rabbitmq() -> None:
 
     await process_queue.bind(tx_exchange, routing_key="transaction.created")
     await alerts_queue.bind(alerts_exchange, routing_key="")
+    await ws_alerts_queue.bind(alerts_exchange, routing_key="")
     await dlq.bind(dlx_exchange, routing_key="dlq.transaction")
 
     logger.info("✅ RabbitMQ connected & topology declared")
@@ -99,3 +114,42 @@ async def publish_message(
 
     await exchange.publish(message, routing_key=routing_key)
     logger.debug(f"📤 Published to {exchange_name}/{routing_key}")
+
+
+async def start_alert_consumer() -> None:
+    """Start consuming fraud alerts from RabbitMQ and broadcast via WebSocket.
+
+    This bridges the Worker's fraud detection results to connected WebSocket
+    clients for real-time updates on the FraudAlerts page and LiveFeed.
+    """
+    # Import here to avoid circular imports
+    from app.api.v1.websocket import broadcast_message
+
+    if channel is None:
+        logger.error("Cannot start alert consumer: RabbitMQ not initialized")
+        return
+
+    queue = await channel.get_queue("fdp.fraud.alerts.ws")
+
+    async def on_alert_message(message: AbstractIncomingMessage) -> None:
+        """Process a fraud alert message and broadcast to WebSocket clients."""
+        async with message.process():
+            try:
+                body = json.loads(message.body.decode())
+                logger.info(
+                    f"🚨 Fraud alert received for WebSocket broadcast: "
+                    f"user={body.get('user_external_id')} | "
+                    f"risk={body.get('risk_level')}"
+                )
+
+                # Broadcast to all connected WebSocket clients
+                await broadcast_message({
+                    "type": "fraud_alert",
+                    "data": body,
+                })
+            except Exception as e:
+                logger.error(f"Error processing alert for WebSocket: {e}")
+
+    await queue.consume(on_alert_message)
+    logger.info("📡 Alert consumer started — broadcasting fraud alerts to WebSocket")
+

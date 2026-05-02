@@ -34,6 +34,7 @@ class TransactionService:
         1. Find or create the user
         2. Save transaction to DB
         3. Publish TransactionEvent to RabbitMQ for Worker processing
+        4. Broadcast to WebSocket clients for real-time LiveFeed
         """
         # Find or create user
         user = await self._get_or_create_user(data.user_id)
@@ -77,6 +78,26 @@ class TransactionService:
             routing_key=ROUTING_KEY_TRANSACTION_CREATED,
             body=event.model_dump(),
         )
+
+        # Broadcast to WebSocket clients for real-time LiveFeed
+        try:
+            from app.api.v1.websocket import broadcast_message
+
+            await broadcast_message({
+                "type": "new_transaction",
+                "data": {
+                    "id": str(transaction.id),
+                    "user_id": str(user.id),
+                    "user_external_id": data.user_id,
+                    "amount": float(data.amount),
+                    "currency": data.currency,
+                    "location": data.location,
+                    "status": transaction.status,
+                    "created_at": transaction.created_at.isoformat() if transaction.created_at else None,
+                },
+            })
+        except Exception as e:
+            logger.warning(f"WebSocket broadcast failed (non-critical): {e}")
 
         logger.info(
             f"📝 Transaction created: {transaction.id} | "
