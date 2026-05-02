@@ -128,15 +128,14 @@ docker compose up -d --build
 docker compose ps
 ```
 
-### Servis Adresları
+### Servis Adresleri
 
-| Servis | Adres |
-|--------|-------|
-| Frontend | http://localhost:3000 |
-| API Docs (Swagger) | http://localhost:8000/docs |
-| API Docs (ReDoc) | http://localhost:8000/redoc |
-| RabbitMQ Management | http://localhost:15672 (guest/guest) |
-| MCP Server | http://localhost:8001/sse |
+Sistem ayağa kalktıktan sonra aşağıdaki adreslerden servislere erişebilirsiniz:
+
+- 🖥️ **Frontend Arayüzü**: [http://localhost:3000](http://localhost:3000)
+- ⚙️ **API Gateway (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- 🐰 **RabbitMQ Yönetim Paneli**: [http://localhost:15672](http://localhost:15672) (Kullanıcı: `guest`, Şifre: `guest`)
+- 🤖 **MCP Server (SSE Bağlantısı)**: `http://localhost:8001/sse` *(Not: Bu bir web arayüzü değildir, AI ajanlarının (Claude Desktop vb.) bağlanması için kullanılan uç noktadır)*
 
 ### Veritabanını Örnekle Doldurun
 
