@@ -234,6 +234,18 @@ Claude Desktop `claude_desktop_config.json`:
 
 ### MCP Test
 
+**1. MCP Inspector ile Test (Tavsiye Edilen)**
+Terminalde aşağıdaki komutu çalıştırarak resmi test aracını başlatın:
+```bash
+npx @modelcontextprotocol/inspector
+```
+Tarayıcıda açılan arayüzde (genellikle `http://localhost:5173`):
+1. **Transport**: `SSE` seçin.
+2. **URL**: `http://localhost:8001/sse` yazıp Connect deyin.
+3. Sol menüdeki "Tools" sekmesinden araçları canlı olarak test edebilirsiniz.
+
+**2. Python Script ile Test**
+Ayrıca proje içindeki test script'ini de kullanabilirsiniz:
 ```bash
 python scripts/mcp-test.py
 ```
