@@ -26,3 +26,11 @@ export interface FraudStats {
     risk_level: string;
   }>;
 }
+
+export interface FraudTrendPoint {
+  date: string;
+  fraud_count: number;
+  transaction_count: number;
+  fraud_rate: number;
+}
+

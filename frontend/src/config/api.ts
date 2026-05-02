@@ -6,5 +6,6 @@ export const API_ENDPOINTS = {
   users: `${API_BASE_URL}/api/v1/users`,
   frauds: `${API_BASE_URL}/api/v1/frauds`,
   fraudStats: `${API_BASE_URL}/api/v1/frauds/stats`,
+  fraudTrend: `${API_BASE_URL}/api/v1/frauds/stats/trend`,
   health: `${API_BASE_URL}/api/v1/health`,
 } as const;
