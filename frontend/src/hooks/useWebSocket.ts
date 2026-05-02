@@ -6,7 +6,14 @@ interface WSMessage {
   data: Record<string, unknown>;
 }
 
-export function useWebSocket() {
+/**
+ * WebSocket hook for real-time updates.
+ *
+ * @param filter - Optional message type filter (e.g., 'fraud_alert', 'new_transaction').
+ *                 When set, only messages matching this type will be added to the messages array.
+ *                 When not set, all messages are included.
+ */
+export function useWebSocket(filter?: string) {
   const [messages, setMessages] = useState<WSMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -23,7 +30,13 @@ export function useWebSocket() {
 
       ws.onmessage = (event) => {
         try {
-          const parsed = JSON.parse(event.data);
+          const parsed: WSMessage = JSON.parse(event.data);
+
+          // Apply type filter if specified
+          if (filter && parsed.type !== filter) {
+            return;
+          }
+
           setMessages((prev) => [parsed, ...prev].slice(0, 100));
         } catch {
           // ignore non-JSON messages
@@ -44,7 +57,7 @@ export function useWebSocket() {
     } catch {
       reconnectTimeout.current = window.setTimeout(connect, 3000);
     }
-  }, []);
+  }, [filter]);
 
   useEffect(() => {
     connect();
