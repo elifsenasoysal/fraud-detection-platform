@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from '../config/api';
 import type { APIResponse, PaginatedResponse } from '../types/api';
 import type { Transaction } from '../types/transaction';
-import type { FraudAlert, FraudStats } from '../types/fraud';
+import type { FraudAlert, FraudStats, FraudTrendPoint } from '../types/fraud';
 import type { UserRisk, UserHistory, UserSummary } from '../types/user';
 
 async function fetchJSON<T>(url: string): Promise<T> {
@@ -30,6 +30,9 @@ export const fraudService = {
 
   stats: () =>
     fetchJSON<APIResponse<FraudStats>>(API_ENDPOINTS.fraudStats),
+
+  trend: (days = 7) =>
+    fetchJSON<APIResponse<FraudTrendPoint[]>>(`${API_ENDPOINTS.fraudTrend}?days=${days}`),
 };
 
 export const userService = {

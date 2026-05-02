@@ -65,3 +65,19 @@ async def get_fraud_stats(
     """Get comprehensive fraud statistics."""
     stats = await service.get_fraud_stats()
     return APIResponse(success=True, data=stats)
+
+
+@router.get(
+    "/stats/trend",
+    response_model=APIResponse,
+    summary="Get fraud trend over time",
+    description="Get daily fraud alert counts and rates for the specified period.",
+)
+async def get_fraud_trend(
+    days: int = Query(7, ge=1, le=90, description="Number of days to look back"),
+    service: FraudService = Depends(get_fraud_service),
+):
+    """Get daily fraud trend data for time-series charts."""
+    trend = await service.get_fraud_trend(days=days)
+    return APIResponse(success=True, data=trend)
+

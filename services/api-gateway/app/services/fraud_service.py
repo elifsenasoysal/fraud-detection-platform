@@ -147,3 +147,66 @@ class FraudService:
             "alerts_by_rule": {},  # Will be populated with UNNEST query if needed
             "top_flagged_users": top_flagged_users,
         }
+
+    async def get_fraud_trend(self, days: int = 7) -> list[dict]:
+        """Get daily fraud alert counts and rates for the specified period.
+
+        Returns a list of daily data points with:
+        - date: The day (YYYY-MM-DD)
+        - fraud_count: Number of fraud alerts that day
+        - transaction_count: Total transactions that day
+        - fraud_rate: Percentage of fraudulent transactions
+        """
+        from sqlalchemy import text
+
+        query = text("""
+            WITH date_series AS (
+                SELECT generate_series(
+                    (CURRENT_DATE - :days * INTERVAL '1 day')::date,
+                    CURRENT_DATE::date,
+                    '1 day'::interval
+                )::date AS day
+            ),
+            daily_frauds AS (
+                SELECT
+                    DATE(created_at AT TIME ZONE 'UTC') AS day,
+                    COUNT(*) AS fraud_count
+                FROM fraud_alerts
+                WHERE created_at >= CURRENT_DATE - :days * INTERVAL '1 day'
+                GROUP BY DATE(created_at AT TIME ZONE 'UTC')
+            ),
+            daily_transactions AS (
+                SELECT
+                    DATE(created_at AT TIME ZONE 'UTC') AS day,
+                    COUNT(*) AS tx_count
+                FROM transactions
+                WHERE created_at >= CURRENT_DATE - :days * INTERVAL '1 day'
+                GROUP BY DATE(created_at AT TIME ZONE 'UTC')
+            )
+            SELECT
+                ds.day,
+                COALESCE(df.fraud_count, 0) AS fraud_count,
+                COALESCE(dt.tx_count, 0) AS transaction_count,
+                CASE
+                    WHEN COALESCE(dt.tx_count, 0) > 0
+                    THEN ROUND((COALESCE(df.fraud_count, 0)::numeric / dt.tx_count) * 100, 2)
+                    ELSE 0
+                END AS fraud_rate
+            FROM date_series ds
+            LEFT JOIN daily_frauds df ON ds.day = df.day
+            LEFT JOIN daily_transactions dt ON ds.day = dt.day
+            ORDER BY ds.day ASC
+        """)
+
+        result = await self.db.execute(query, {"days": days})
+        rows = result.all()
+
+        return [
+            {
+                "date": row[0].isoformat(),
+                "fraud_count": row[1],
+                "transaction_count": row[2],
+                "fraud_rate": float(row[3]),
+            }
+            for row in rows
+        ]
