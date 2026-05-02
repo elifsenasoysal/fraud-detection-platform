@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Users, Search } from 'lucide-react';
+import { Users, Search, History } from 'lucide-react';
 import { userService } from '../services/api';
 import RiskIndicator from '../components/common/RiskIndicator';
-import type { UserSummary } from '../types/user';
-import type { UserRisk } from '../types/user';
+import type { UserSummary, UserRisk, UserHistory } from '../types/user';
 
 export default function UserDetail() {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserRisk | null>(null);
+  const [userHistory, setUserHistory] = useState<UserHistory | null>(null);
   const [searchId, setSearchId] = useState('');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -23,10 +23,15 @@ export default function UserDetail() {
   const loadUserDetail = async (externalId: string) => {
     setDetailLoading(true);
     try {
-      const res = await userService.risk(externalId);
-      if (res.data) setSelectedUser(res.data);
+      const [riskRes, historyRes] = await Promise.all([
+        userService.risk(externalId),
+        userService.history(externalId, 1),
+      ]);
+      if (riskRes.data) setSelectedUser(riskRes.data);
+      if (historyRes.data) setUserHistory(historyRes.data);
     } catch {
       setSelectedUser(null);
+      setUserHistory(null);
     } finally {
       setDetailLoading(false);
     }
@@ -41,6 +46,17 @@ export default function UserDetail() {
     amount != null
       ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount)
       : '—';
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleString('tr-TR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
 
   return (
     <>
@@ -104,7 +120,7 @@ export default function UserDetail() {
                   <tr
                     key={user.id}
                     onClick={() => loadUserDetail(user.external_id)}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', background: selectedUser?.external_id === user.external_id ? 'var(--bg-elevated)' : 'transparent' }}
                   >
                     <td style={{ fontWeight: 600 }}>{user.external_id}</td>
                     <td><RiskIndicator level={user.risk_level} /></td>
@@ -130,7 +146,7 @@ export default function UserDetail() {
             {detailLoading ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Yükleniyor...</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                   <div style={{ background: 'var(--bg-elevated)', padding: 16, borderRadius: 'var(--radius-sm)' }}>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Toplam İşlem</div>
@@ -157,6 +173,51 @@ export default function UserDetail() {
                 <div style={{ background: 'var(--bg-elevated)', padding: 16, borderRadius: 'var(--radius-sm)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Son Konum</div>
                   <div style={{ fontWeight: 600 }}>📍 {selectedUser.last_location || '—'}</div>
+                </div>
+
+                {/* Transaction History Section */}
+                <div>
+                  <h4 style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <History size={18} />
+                    İşlem Geçmişi
+                  </h4>
+                  {userHistory && userHistory.transactions.length > 0 ? (
+                    <div style={{ maxHeight: 400, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
+                      <table className="data-table" style={{ border: 'none' }}>
+                        <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                          <tr>
+                            <th>Tarih</th>
+                            <th>Tutar</th>
+                            <th>Konum</th>
+                            <th>Durum</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {userHistory.transactions.map((tx) => {
+                            const isFraud = userHistory.fraud_alerts.some((a) => a.transaction_id === tx.id);
+                            return (
+                              <tr key={tx.id} style={{ background: isFraud ? 'var(--danger-bg)' : 'transparent' }}>
+                                <td style={{ fontSize: '0.85rem' }}>{formatDate(tx.created_at)}</td>
+                                <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                                  {formatAmount(tx.amount)}
+                                </td>
+                                <td>{tx.location}</td>
+                                <td>
+                                  <span className={`badge badge-${isFraud ? 'critical' : tx.status === 'approved' ? 'low' : 'medium'}`}>
+                                    {isFraud ? 'fraud' : tx.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)' }}>
+                      İşlem geçmişi bulunamadı.
+                    </div>
+                  )}
                 </div>
               </div>
             )}

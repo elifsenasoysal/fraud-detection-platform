@@ -28,6 +28,7 @@ export interface UserHistory {
   }>;
   fraud_alerts: Array<{
     id: string;
+    transaction_id: string;
     risk_level: string;
     violated_rules: string[];
     is_resolved: boolean;

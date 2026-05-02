@@ -83,13 +83,14 @@ async def list_transactions(
     return PaginatedResponse(
         data=[
             {
-                "id": str(tx.id),
-                "user_id": str(tx.user_id),
-                "amount": float(tx.amount),
-                "currency": tx.currency,
-                "location": tx.location,
-                "status": tx.status,
-                "created_at": tx.created_at.isoformat() if tx.created_at else None,
+                "id": tx["id"],
+                "user_id": tx["user_id"],
+                "user_external_id": tx["user_external_id"],
+                "amount": tx["amount"],
+                "currency": tx["currency"],
+                "location": tx["location"],
+                "status": tx["status"],
+                "created_at": tx["created_at"].isoformat() if tx["created_at"] else None,
             }
             for tx in transactions
         ],
