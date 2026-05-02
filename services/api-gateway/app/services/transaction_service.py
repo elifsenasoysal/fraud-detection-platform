@@ -117,10 +117,10 @@ class TransactionService:
         max_amount: Optional[float] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-    ) -> tuple[list[Transaction], int]:
+    ) -> tuple[list[dict], int]:
         """Get paginated list of transactions with optional filters."""
-        query = select(Transaction).join(User)
-        count_query = select(func.count(Transaction.id)).join(User)
+        query = select(Transaction, User).join(User, Transaction.user_id == User.id)
+        count_query = select(func.count(Transaction.id)).join(User, Transaction.user_id == User.id)
 
         # Apply filters
         filters = []
@@ -148,7 +148,21 @@ class TransactionService:
         offset = (page - 1) * page_size
         query = query.order_by(Transaction.created_at.desc()).offset(offset).limit(page_size)
         result = await self.db.execute(query)
-        transactions = result.scalars().all()
+        rows = result.all()
+
+        transactions = [
+            {
+                "id": str(tx.id),
+                "user_id": str(tx.user_id),
+                "user_external_id": user.external_id,
+                "amount": float(tx.amount),
+                "currency": tx.currency,
+                "location": tx.location,
+                "status": tx.status,
+                "created_at": tx.created_at,
+            }
+            for tx, user in rows
+        ]
 
         return transactions, total or 0
 

@@ -64,6 +64,9 @@ async def shutdown():
     await close_db()
 
 
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+
 # Starlette app with SSE transport
 app = Starlette(
     debug=True,
@@ -71,6 +74,9 @@ app = Starlette(
         Route("/health", handle_health),
         Route("/sse", handle_sse),
         Mount("/messages/", app=sse.handle_post_message),
+    ],
+    middleware=[
+        Middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
     ],
     on_startup=[startup],
     on_shutdown=[shutdown],

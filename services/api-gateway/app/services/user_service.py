@@ -146,6 +146,7 @@ class UserService:
             "fraud_alerts": [
                 {
                     "id": str(alert.id),
+                    "transaction_id": str(alert.transaction_id),
                     "risk_level": alert.risk_level,
                     "violated_rules": alert.violated_rules,
                     "is_resolved": alert.is_resolved,
